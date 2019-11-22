@@ -22,3 +22,15 @@ Zohladnit tieto parametre v okolí cesty z / do prace.
 - nabozenstvo
 - vzdialenost od centra mesta
 - vzdialenost od letiska
+
+Data
+- Work location
+- Max radius
+- Rank parametre:
+    - vzdialenost od letiska
+    - nemocnica
+    - vzdialenost od nakupneho centra
+    - school near comute
+    - supermarket near comute
+    - vlakova stanica
+

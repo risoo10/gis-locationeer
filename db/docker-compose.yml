@@ -1,0 +1,21 @@
+version: '3'
+services:
+  pdt-postgis-routing-project:
+    image: starefossen/pgrouting:9.4-2.1-2.1
+    ports:
+    - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD:
+
+  pdt-pgadmin-project:
+    image: dpage/pgadmin4
+    links:
+    - pdt-postgis-routing-project
+    depends_on:
+    - pdt-postgis-routing-project
+    ports:
+    - "5555:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: richard.mocak@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: Heslo123
+    restart: unless-stopped
