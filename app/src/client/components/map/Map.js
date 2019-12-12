@@ -1,60 +1,117 @@
 import React, {Component} from 'react';
 import mapboxgl from 'mapbox-gl';
 import PropTypes from "prop-types";
+import {MAP_IDS} from "../../constants";
+import workIcon from '../../icons/work.png';
 
 mapboxgl.accessToken = process.env.MAPBOX_TOKEN;
 
 class Map extends Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            mapLoaded: false
+        }
+    }
 
     loadMap() {
         this.map = new mapboxgl.Map({
             container: this.mapContainer,
             style: 'mapbox://styles/mapbox/streets-v9',
-            center: [17.063878, 48.158900],
+            center: [12.450698, 41.824625],
             zoom: [10]
         });
 
         this.map.on('load', () => {
+            this.setState({
+                mapLoaded: true
+            });
             this.map.addSource(
-                'areas', {
+                MAP_IDS.AREA_SOURCE, {
                     type: 'geojson',
                     data: this.getAreaStoreData(this.props.geoJsonAreas)
                 }
             );
 
             this.map.addLayer({
-                id: 'area-layer',
+                id: MAP_IDS.AREAS_LAYER,
                 type: 'fill',
-                source: 'areas',
+                source: MAP_IDS.AREA_SOURCE,
                 layout: {},
                 paint: {
                     "fill-color": [
                         "interpolate",
                         ["linear"],
-                        ["get", "area"],
-                        100000, "#1c6ff8",
-                        5000000, "#31DB92",
-                        100000000, "#fef720"
+                        ["get", "score"],
+                        0, "#1c6ff8",
+                        30, "#31DB92",
+                        70, "#fef720"
                     ],
-                    'fill-opacity': 0.5,
+                    'fill-opacity': 0.3,
                     'fill-outline-color': 'black',
                 }
-            })
+            });
+
+            this.map.loadImage(workIcon, (error, imageData) => {
+                if (!error) {
+                    this.map.addImage(MAP_IDS.WORK_ICON_IMAGE, imageData);
+                    this.updateWorkIconSource();
+                    this.map.addLayer({
+                        id: MAP_IDS.WORK_ICON_LAYER,
+                        type: 'symbol',
+                        source: MAP_IDS.WORK_ICON_SOURCE,
+                        layout: {
+                            'icon-image': MAP_IDS.WORK_ICON_IMAGE,
+                            'icon-size': 0.1
+                        }
+                    });
+                }
+            });
         });
     }
 
     componentDidUpdate(prevProps) {
-        if (prevProps.geoJsonAreas !== this.props.geoJsonAreas) {
-            this.updateAreaSource();
+        if (this.state.mapLoaded) {
+            if (prevProps.geoJsonAreas !== this.props.geoJsonAreas) {
+                this.map && this.updateAreaSource();
+            }
+
+            if (prevProps.workLocation !== this.props.workLocation) {
+                this.map && this.updateWorkIconSource();
+                // console.log(JSON.stringify(this.getWorkLocationSourceData()));
+            }
         }
     }
 
     updateAreaSource() {
         const newSourceData = this.getAreaStoreData(this.props.geoJsonAreas);
-        const sampleCoordinates = newSourceData.features[25].geometry.coordinates[0][0];
         console.log('[map] updatedSource', newSourceData.features[25]);
-        this.map.getSource('areas').setData(newSourceData);
-        this.map.jumpTo({center: sampleCoordinates});
+        this.map.getSource(MAP_IDS.AREA_SOURCE).setData(newSourceData);
+    }
+
+    updateWorkIconSource() {
+        this.map.jumpTo({center: this.props.workLocation});
+        const workSource = this.map.getSource(MAP_IDS.WORK_ICON_SOURCE);
+        if (!workSource) {
+            this.map.addSource(MAP_IDS.WORK_ICON_SOURCE, {type: 'geojson', data: this.getWorkLocationSourceData()});
+        } else {
+            workSource.setData(this.getWorkLocationSourceData());
+        }
+    }
+
+    getWorkLocationSourceData() {
+        return {
+            type: 'FeatureCollection',
+            features: [
+                {
+                    type: 'Feature',
+                    geometry: {
+                        type: 'Point',
+                        coordinates: [...this.props.workLocation]
+                    }
+                }
+            ]
+        }
     }
 
     componentDidMount() {
@@ -72,7 +129,7 @@ class Map extends Component {
                 type: 'Feature',
                 geometry: itemObject,
                 properties: {
-                    area: item.area,
+                    score: item.score,
                 }
             }
         });
@@ -98,9 +155,8 @@ class Map extends Component {
 
 
 Map.propTypes = {
-    onWorkLocationUpdate: PropTypes.func,
-    selectingWorkLocation: PropTypes.bool,
-    geoJsonAreas: PropTypes.array
+    geoJsonAreas: PropTypes.array,
+    workLocation: PropTypes.arrayOf(PropTypes.number),
 };
 
 export default Map;
