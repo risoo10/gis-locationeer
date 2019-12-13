@@ -7,5 +7,8 @@ export const MAP_IDS = {
     ROUTE_LAYER: 'routeLayer',
     ROUTE_SOURCE: 'routeSource',
     SHOPS_LAYER: 'shopsLayer',
-    SHOPS_SOURCE: 'shopsSource'
+    SHOPS_SOURCE: 'shopsSource',
+    SHOP_IMAGE: 'shopsImage',
+    SELECTED_AREA_LAYER: 'selectedAreaLayer',
+    SELECTED_AREA_SOURCE: 'selectedAreaSource',
 };

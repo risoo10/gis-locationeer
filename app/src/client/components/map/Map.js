@@ -3,6 +3,7 @@ import mapboxgl from 'mapbox-gl';
 import PropTypes from "prop-types";
 import {MAP_IDS} from "../../constants";
 import workIcon from '../../icons/work.png';
+import shopIcon from '../../icons/location.png';
 
 mapboxgl.accessToken = process.env.MAPBOX_TOKEN;
 
@@ -43,6 +44,22 @@ class Map extends Component {
                 }
             );
 
+            this.map.addSource(MAP_IDS.SELECTED_AREA_SOURCE, {
+                type: 'geojson',
+                data: this.getSelectedAreaData(),
+            });
+
+            this.map.addLayer({
+                id: MAP_IDS.SELECTED_AREA_LAYER,
+                type: 'fill',
+                source: MAP_IDS.SELECTED_AREA_SOURCE,
+                layout: {},
+                paint: {
+                    "fill-color": '#f44366',
+                    'fill-opacity': 0.3,
+                }
+            });
+
             this.map.addLayer({
                 id: MAP_IDS.AREAS_LAYER,
                 type: 'fill',
@@ -57,8 +74,9 @@ class Map extends Component {
                         30, "#31DB92",
                         70, "#fef720"
                     ],
-                    'fill-opacity': 0.275,
+                    'fill-opacity': 0.25,
                     'fill-outline-color': 'black',
+
                 }
             });
 
@@ -72,7 +90,28 @@ class Map extends Component {
                         source: MAP_IDS.WORK_ICON_SOURCE,
                         layout: {
                             'icon-image': MAP_IDS.WORK_ICON_IMAGE,
-                            'icon-size': 0.1
+                            'icon-size': 0.1,
+                            'icon-allow-overlap': true,
+                        }
+                    });
+                }
+            });
+
+            this.map.loadImage(shopIcon, (error, imageData) => {
+                if (!error) {
+                    this.map.addImage(MAP_IDS.SHOP_IMAGE, imageData);
+                    this.map.addSource(MAP_IDS.SHOPS_SOURCE, {
+                        type: 'geojson',
+                        cluster: false,
+                        data: null,
+                    });
+                    this.map.addLayer({
+                        id: MAP_IDS.SHOPS_LAYER,
+                        type: 'symbol',
+                        source: MAP_IDS.SHOPS_SOURCE,
+                        layout: {
+                            'icon-image': MAP_IDS.SHOP_IMAGE,
+                            'icon-size': 0.07,
                         }
                     });
                 }
@@ -93,7 +132,7 @@ class Map extends Component {
                 },
                 paint: {
                     'line-color': '#888',
-                    'line-width': 8
+                    'line-width': 5
                 }
 
             })
@@ -105,6 +144,11 @@ class Map extends Component {
             if (prevProps.geoJsonAreas !== this.props.geoJsonAreas) {
                 this.map && this.updateAreaSource();
             }
+
+            if (prevProps.selectedQuarter !== this.props.selectedQuarter) {
+                this.map && this.map.getSource(MAP_IDS.SELECTED_AREA_SOURCE).setData(this.getSelectedAreaData());
+            }
+
 
             if (prevProps.workLocation !== this.props.workLocation) {
                 this.map && this.updateWorkIconSource();
@@ -122,11 +166,25 @@ class Map extends Component {
     }
 
     updateRouteSource() {
-        this.map.getSource(MAP_IDS.ROUTE_SOURCE).setData(this.props.route);
+        this.map.getSource(MAP_IDS.ROUTE_SOURCE).setData(this.props.route || []);
     }
 
     updateShopsSource() {
-
+        const coordinates = this.props.shops ? this.props.shops : [];
+        const newData = this.props.shops && {
+            type: 'FeatureCollection',
+            features: coordinates.map((coord) => {
+                return {
+                    type: 'Feature',
+                    geometry: {
+                        type: 'Point',
+                        coordinates: [...coord]
+                    }
+                }
+            })
+        };
+        const shopsSource = this.map.getSource(MAP_IDS.SHOPS_SOURCE);
+        shopsSource && shopsSource.setData(newData);
     }
 
     updateAreaSource() {
@@ -139,10 +197,22 @@ class Map extends Component {
         this.map.jumpTo({center: this.props.workLocation});
         const workSource = this.map.getSource(MAP_IDS.WORK_ICON_SOURCE);
         if (!workSource) {
-            this.map.addSource(MAP_IDS.WORK_ICON_SOURCE, {type: 'geojson', data: this.getWorkLocationSourceData()});
+            this.map.addSource(MAP_IDS.WORK_ICON_SOURCE, {
+                type: 'geojson',
+                cluster: false,
+                data: this.getWorkLocationSourceData()
+            });
         } else {
             workSource.setData(this.getWorkLocationSourceData());
         }
+    }
+
+    getSelectedAreaData() {
+        const item = this.props.geoJsonAreas.find(item => item.id === this.props.selectedQuarter)
+        return item ? JSON.parse(item.waygeo) : {
+            'type': 'FeatureCollection',
+            'features': []
+        };
     }
 
     getWorkLocationSourceData() {
@@ -167,6 +237,7 @@ class Map extends Component {
                 type: 'Feature',
                 geometry: itemObject,
                 properties: {
+                    id: item.id,
                     score: item.score,
                 }
             }
@@ -196,8 +267,8 @@ Map.propTypes = {
     geoJsonAreas: PropTypes.array,
     workLocation: PropTypes.arrayOf(PropTypes.number),
     route: PropTypes.object,
-    shops: PropTypes.object,
-
+    shops: PropTypes.arrayOf(PropTypes.array),
+    selectedQuarter: PropTypes.string,
 
 };
 

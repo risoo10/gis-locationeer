@@ -14,7 +14,7 @@ export default class App extends Component {
         super(props);
         this.state = {
             userPreferences: {
-                geoN: 41.824625,
+                geoN: 41.954625,
                 geoE: 12.450698,
                 diameter: 50
             },
@@ -61,7 +61,7 @@ export default class App extends Component {
     };
 
     getRouteToQuarter = (quarterId) => {
-        this.setState({loadingItems: this.state.loadingItems + 1});
+        this.setState({loadingItems: this.state.loadingItems + 1, selectedQuarter: quarterId});
         fetch('./api/v1/location/route/', {
             method: 'POST', // *GET, POST, PUT, DELETE, etc.
             mode: 'cors', // no-cors, *cors, same-origin
@@ -77,11 +77,12 @@ export default class App extends Component {
         })
             .then(res => res.json())
             .then((results => {
-                console.log(results);
+
                 this.setState({loadingItems: this.state.loadingItems - 1});
                 if (results && results[0]) {
-                    this.setState({route: JSON.parse(results[0].line) || null, shops: JSON.parse(results[0].shops) || null});
+                    this.setState({route: JSON.parse(results[0].line) || null, shops: JSON.parse(results[0].shops).coordinates || null});
                 }
+                console.log([this.state.shops, this.state.route]);
             }))
             .catch((error) => {
                 this.setState({loadingItems: this.state.loadingItems - 1});
@@ -182,6 +183,7 @@ export default class App extends Component {
                         workLocation={this.getWorkLocation()}
                         shops={this.state.shops}
                         route={this.state.route}
+                        selectedQuarter={this.state.selectedQuarter}
                     />
                 </div>
             </div>
