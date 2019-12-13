@@ -6,6 +6,7 @@ import '@fortawesome/fontawesome-free/css/solid.min.css';
 import Map from './components/map/Map';
 import SidePanel from "./components/side-panel/SidePanel";
 import {isValue, round, safeGet} from "./utils";
+import ProgressBar from "./components/progress-bar/ProgressBar";
 
 export default class App extends Component {
 
@@ -18,7 +19,11 @@ export default class App extends Component {
                 diameter: 50
             },
             selectedParams: {},
-            areas: []
+            areas: [],
+            route: null,
+            shops: null,
+            selectedQuarter: null,
+            loadingItems: 0,
         }
     }
 
@@ -29,6 +34,7 @@ export default class App extends Component {
     };
 
     searchLocations = () => {
+        this.setState({loadingItems: this.state.loadingItems + 1});
         fetch('./api/v1/location/', {
             method: 'POST', // *GET, POST, PUT, DELETE, etc.
             mode: 'cors', // no-cors, *cors, same-origin
@@ -44,10 +50,41 @@ export default class App extends Component {
         })
             .then(res => res.json())
             .then((results => {
+                this.setState({loadingItems: this.state.loadingItems - 1});
                 // console.log(results);
                 this.setState({areas: results});
             }))
             .catch((error) => {
+                this.setState({loadingItems: this.state.loadingItems - 1});
+                console.error(error);
+            })
+    };
+
+    getRouteToQuarter = (quarterId) => {
+        this.setState({loadingItems: this.state.loadingItems + 1});
+        fetch('./api/v1/location/route/', {
+            method: 'POST', // *GET, POST, PUT, DELETE, etc.
+            mode: 'cors', // no-cors, *cors, same-origin
+            cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+            credentials: 'same-origin', // include, *same-origin, omit
+            headers: {
+                'Content-Type': 'application/json'
+                // 'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            redirect: 'follow', // manual, *follow, error
+            referrer: 'no-referrer', // no-referrer, *client
+            body: JSON.stringify({...this.state.userPreferences, quarterId})
+        })
+            .then(res => res.json())
+            .then((results => {
+                console.log(results);
+                this.setState({loadingItems: this.state.loadingItems - 1});
+                if (results && results[0]) {
+                    this.setState({route: JSON.parse(results[0].line) || null, shops: JSON.parse(results[0].shops) || null});
+                }
+            }))
+            .catch((error) => {
+                this.setState({loadingItems: this.state.loadingItems - 1});
                 console.error(error);
             })
     };
@@ -67,7 +104,7 @@ export default class App extends Component {
 
     sidePanelStyles = {
         display: 'flex',
-        minWidth: '350px',
+        minWidth: '380px',
         flex: 1
     };
 
@@ -81,22 +118,28 @@ export default class App extends Component {
     render() {
 
         const areasList = this.state.areas.slice(0, 20).map(areaItem => {
-            return <a href="#" key={areaItem.id} className="list-group-item list-group-item-action d-flex flex-column">
+            return <a onClick={() => this.getRouteToQuarter(areaItem.id)} href="#" key={areaItem.id}
+                      className="list-group-item list-group-item-action d-flex flex-column">
                 <h6 className="mb-1">{areaItem.name}</h6>
                 <span className="row">
                     <span className="col-6">
-                        <small>schools: {areaItem.schools}</small>
+                        <small>vzd. do práce: {round(areaItem.distance / 1000, 2)}km</small>
                     </span>
                     <span className="col-6">
-                        <small>shops: {areaItem.shops}</small>
+                        <small>vzd. letisko: {round(areaItem.airportdistance / 1000, 2)}km</small>
                     </span>
                 </span>
                 <span className="row">
                     <span className="col-6">
-                        <small>distance: {round(areaItem.distance / 1000, 2)}km</small>
+                        <small>školy: {areaItem.schools}</small>
                     </span>
                     <span className="col-6">
-                        <small>airport: {round(areaItem.airportdistance / 1000, 2)}km</small>
+                        <small>obchody: {areaItem.shops}</small>
+                    </span>
+                </span>
+                <span className="row">
+                    <span className="col-6">
+                        <small>id: {areaItem.id}</small>
                     </span>
                 </span>
             </a>
@@ -133,9 +176,12 @@ export default class App extends Component {
                     </div>
                 </div>
                 <div style={this.mapStyles}>
+                    {this.state.loadingItems > 0 && <ProgressBar/>}
                     <Map
                         geoJsonAreas={this.state.areas}
                         workLocation={this.getWorkLocation()}
+                        shops={this.state.shops}
+                        route={this.state.route}
                     />
                 </div>
             </div>

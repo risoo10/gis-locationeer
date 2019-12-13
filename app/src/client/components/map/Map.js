@@ -14,6 +14,16 @@ class Map extends Component {
         }
     }
 
+
+    componentDidMount() {
+        this.loadMap();
+    }
+
+    componentWillUnmount() {
+        this.map.remove();
+    }
+
+
     loadMap() {
         this.map = new mapboxgl.Map({
             container: this.mapContainer,
@@ -47,7 +57,7 @@ class Map extends Component {
                         30, "#31DB92",
                         70, "#fef720"
                     ],
-                    'fill-opacity': 0.3,
+                    'fill-opacity': 0.275,
                     'fill-outline-color': 'black',
                 }
             });
@@ -67,6 +77,26 @@ class Map extends Component {
                     });
                 }
             });
+
+            this.map.addSource(MAP_IDS.ROUTE_SOURCE, {
+                type: 'geojson',
+                data: this.props.route,
+            });
+
+            this.map.addLayer({
+                id: MAP_IDS.ROUTE_LAYER,
+                type: 'line',
+                source: MAP_IDS.ROUTE_SOURCE,
+                layout: {
+                    'line-join': 'round',
+                    'line-cap': 'round'
+                },
+                paint: {
+                    'line-color': '#888',
+                    'line-width': 8
+                }
+
+            })
         });
     }
 
@@ -80,7 +110,23 @@ class Map extends Component {
                 this.map && this.updateWorkIconSource();
                 // console.log(JSON.stringify(this.getWorkLocationSourceData()));
             }
+
+            if (prevProps.route !== this.props.route) {
+                this.map && this.updateRouteSource();
+            }
+
+            if (prevProps.shops !== this.props.shops) {
+                this.map && this.updateShopsSource();
+            }
         }
+    }
+
+    updateRouteSource() {
+        this.map.getSource(MAP_IDS.ROUTE_SOURCE).setData(this.props.route);
+    }
+
+    updateShopsSource() {
+
     }
 
     updateAreaSource() {
@@ -112,14 +158,6 @@ class Map extends Component {
                 }
             ]
         }
-    }
-
-    componentDidMount() {
-        this.loadMap();
-    }
-
-    componentWillUnmount() {
-        this.map.remove();
     }
 
     getAreaStoreData(geoJsonAreas) {
@@ -157,6 +195,10 @@ class Map extends Component {
 Map.propTypes = {
     geoJsonAreas: PropTypes.array,
     workLocation: PropTypes.arrayOf(PropTypes.number),
+    route: PropTypes.object,
+    shops: PropTypes.object,
+
+
 };
 
 export default Map;
