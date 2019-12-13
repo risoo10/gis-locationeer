@@ -37,3 +37,12 @@ body {
   50% { margin-left: 25%; margin-right: 0%; }
   100% { margin-left: 100%; margin-right: 0; }
 }
+
+a.quarter-card.selected {
+  color: #f44366;
+
+}
+
+a.quarter-card.selected h6 {
+  font-weight: bold;
+}

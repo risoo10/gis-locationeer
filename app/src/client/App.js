@@ -34,7 +34,7 @@ export default class App extends Component {
     };
 
     searchLocations = () => {
-        this.setState({loadingItems: this.state.loadingItems + 1});
+        this.setState({loadingItems: this.state.loadingItems + 1, selectedQuarter: null});
         fetch('./api/v1/location/', {
             method: 'POST', // *GET, POST, PUT, DELETE, etc.
             mode: 'cors', // no-cors, *cors, same-origin
@@ -80,7 +80,10 @@ export default class App extends Component {
 
                 this.setState({loadingItems: this.state.loadingItems - 1});
                 if (results && results[0]) {
-                    this.setState({route: JSON.parse(results[0].line) || null, shops: JSON.parse(results[0].shops).coordinates || null});
+                    this.setState({
+                        route: JSON.parse(results[0].line) || null,
+                        shops: JSON.parse(results[0].shops).coordinates || null
+                    });
                 }
                 console.log([this.state.shops, this.state.route]);
             }))
@@ -117,10 +120,9 @@ export default class App extends Component {
     }
 
     render() {
-
         const areasList = this.state.areas.slice(0, 20).map(areaItem => {
             return <a onClick={() => this.getRouteToQuarter(areaItem.id)} href="#" key={areaItem.id}
-                      className="list-group-item list-group-item-action d-flex flex-column">
+                      className={`list-group-item list-group-item-action d-flex flex-column quarter-card ${areaItem.id === this.state.selectedQuarter ? 'selected' : ''}`}>
                 <h6 className="mb-1">{areaItem.name}</h6>
                 <span className="row">
                     <span className="col-6">
